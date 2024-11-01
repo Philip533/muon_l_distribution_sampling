@@ -1,0 +1,23 @@
+outfile="multiplot.pdf"
+set out outfile
+
+unset ytics
+set xtic offset 0,0.5 
+set xtic 0.1
+# set ytic font "Helvetica, 10"
+unset grid
+set multiplot layout 1,2 margins 0.15, 0.98, 0.15, 0.98 spacing 0.10, 0.15
+unset key
+set key nobox font "Helvetica, 10"
+# set key at screen 0.2,screen 0.99 #for example
+
+set xlabel "Intensity" offset 0, 1.2
+set ylabel "Count (arb. units)" offset 1,0
+set key top left
+p 'intensities21.dat' w l title "Calc" ls 1, 'gaussian21.dat' w l title "Exp" dt 4 
+p 'intensities32.dat' w l title "Calc", 'gaussian32.dat' w l title "Exp" dt 4
+
+unset multiplot
+unset out
+
+sys "evince ".outfile
