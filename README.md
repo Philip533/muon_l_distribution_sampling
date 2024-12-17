@@ -5,8 +5,7 @@ SciPy 1.13.1
 NumPy 2.0.2
 Gfortran 11.4.1
 
-If you want the figure to immediately be displayed at the end of the calculation, you also need Okular.
-
+If you want the figure to immediately be displayed at the end of the calculation, you also need evince.
 
 The program is run as follows:
 
