@@ -5,7 +5,7 @@ import sys
 import re
 import numpy as np
 
-with open('/home/philip/PhD/Summer_Project/akylas/electron_binding_energies/binding.dat') as f:
+with open('./binding.dat') as f:
     lines = f.read().splitlines()
 
 element = []
@@ -62,7 +62,7 @@ elif(len(element[4:]) == 0):
 charge = int(element[1])+1
 
 # Now get atomic mass table
-with open('/home/philip/PhD/Summer_Project/akylas/electron_binding_energies/atomic_masses.dat') as f:
+with open('./atomic_masses.dat') as f:
     lines = f.read().splitlines()
 
 # Get the appropriate atomic mass
