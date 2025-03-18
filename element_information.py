@@ -9,7 +9,11 @@ import numpy as np
 # BE are the binding energies for the Z-1 element
 def return_elements(ele):
 
+    # We use this huge value as we have put a check inside
+    # The Akylas code which lets us run Auger transitions for all shells
+    # even if they don't exist
     zero_binding = "9.9E19"
+
     # Grab the binding energy file
     with open('electron_binding_energies/binding.dat') as f:
         lines = f.read().splitlines()
@@ -29,15 +33,15 @@ def return_elements(ele):
         if (split[0] == "#"):
             continue
         
-        # If element matches input, then grab the previous line
+        # If element matches input, then grab the Z-1 element
         if (split[2] == ele):
             element = lines[i-1].split()
             done = True
             break
 
-    # Catch incorrect name
+    # Catch incorrect name if we can't find it in the file
     if (done == False):
-        print("ERROR IN ELEMENT NAME", ele, "PROGRAM STOPPING")
+        print("Error in element name: ", ele, " Program terminating")
         sys.exit()
 
     # All elements have a K binding energy
@@ -85,7 +89,7 @@ def return_elements(ele):
             mass = (lines[i].split()[3])
 
             # Remove the brackets that occur in some of the elements
-            if(re.search("\(", str(mass))):
+            if(re.search("\\(", str(mass))):
                 mass = mass.split("(")[0]
             break
 
@@ -93,6 +97,10 @@ def return_elements(ele):
     z_line = "Z     NE   "+str(charge)
 
     # Deal with negative charges
+    # We subtract 1, 3, and 9 to get the effective atomic number for the 
+    # K, L, and M energy levels.
+    # eg K shell sees Z - 1 due to muon, L sees Z - 2 - 1 due to 1s2 and muon
+    # and L shell sees Z - 2 - 2 - 6 - 1 due to 1s2, 2s2, 2p6 and muon
     charge_k = charge - 1 if (charge - 1) > 0 else 0
     charge_l = charge - 3 if (charge - 3) > 0 else 0
     charge_m = charge - 9 if (charge - 9) > 0 else 0
