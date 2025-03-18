@@ -62,6 +62,9 @@ def run_gaussian_process(*params, element, nsamples, l_distribution, signal, sca
         distribution = "quad"
     elif(int(l_distribution) == 4):
         distribution = "statlinear"
+    elif(int(l_distribution) == -1):
+        distribution = "custom"
+        custom_distribution = params[0]
     elif(int(l_distribution) == 16):
         a = params[0]
         b = params[1]
@@ -123,6 +126,15 @@ def run_gaussian_process(*params, element, nsamples, l_distribution, signal, sca
                 # Otherwise, add the sample to function evaluation
                 else:
                    val[j,i] = (samples[i,j] + statlinear_dist(X_p[i])/normalisation)
+            elif(distribution == "custom"):
+
+                # If our population goes below zero, force it to zero
+                if((samples[i,j] + custom_distribution[i]/normalisation) < 0):
+                   val[j,i] = 0
+                
+                # Otherwise, add the sample to function evaluation
+                else:
+                   val[j,i] = (samples[i,j] + custom_distribution[i]/normalisation)
 
     # f = open("statsamples.dat", "w")
     # for i in range(20):

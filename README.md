@@ -11,10 +11,13 @@ The program is run as follows:
 
 `python3 run_experiment.py <element> <l_distribution> <initial_parameter guess(es))`
 
-where the l_distribution is either:
+where the l\_distribution is either:
+    -1 for custom
     0 for modified statistical
     2 for quadratic 
     4 for statistical
+
+In order to use a custom l\_distribution, it must be provided in a file called custom\_distribution.dat. It must have the populations for each subshell in the nmax energy level in a single row. An example file is provided which would represent P(l) = l.
 
 This code uses the Akylas cascade code [1] to calculate muonic X-ray transitions for a given element. Using experimental data for whole shell transitions, a least squares fit is used to find appropriate parameters for the initial l-distributions.
 

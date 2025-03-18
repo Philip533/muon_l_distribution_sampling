@@ -152,7 +152,19 @@ distribution = np.zeros(nmax)
 if(int(l_distribution) == -1):
     print ("Custom l-distribution chosen.")
     nop_line = "NOP   OR   "+str(l_distribution)
-    experiment_name = element+"custom"+alpha
+    experiment_name = element+"_custom"
+    nmx_line = "NMX   OR   "+str(nmax)
+
+    # The custom distribution must have nmax number of values
+    # in this current code implementation
+    # The distribution must be in a file called
+    # custom_distribution.dat in a single row
+    custom_file = open('./custom_distribution.dat')
+    distribution = np.array(custom_file.read().split(),dtype=float)
+
+    if(not np.all(distribution >= 0.0)):
+        print("Fatal error: Initial muon population cannot have negative values")
+        sys.exit()
 
 # Modified statistical distribution
 elif(int(l_distribution) == 0):
@@ -203,12 +215,16 @@ else:
     print("No valid distribution chosen")
     sys.exit()
 
-# Name of the folder which will contain the results
-os.makedirs(experiment_name, exist_ok=True)
-
 # This gets all our element specific parameters for Akylas
 # from data tabulated in the electron_binding_energies folder
 z_line, zs_line, a_line, be_line = (return_elements(element))
+
+print("Element specific input parameters:")
+print(zs_line)
+print(a_line)
+print(be_line)
+# Name of the folder which will contain the results
+os.makedirs(experiment_name, exist_ok=True)
 
 # Compile the code here
 os.system("gfortran -g --std=legacy -fd-lines-as-comments -ffpe-trap=zero,invalid,denorm,underflow -fbacktrace -fdefault-real-8 -fdefault-double-8 -fdefault-integer-8 -funsafe-math-optimizations -fno-align-commons -fmax-errors=1 muon.f")
@@ -283,7 +299,7 @@ if(int(l_distribution) == 0):
         list_of_dicts.append(intensity_table)
         counter += 1
  
-elif(int(l_distribution) == 2 or int(l_distribution) == 16):
+elif(int(l_distribution) == 2):
 
   sensitivity_range = 0.8
   a = float(a)
@@ -341,14 +357,15 @@ elif(int(l_distribution) == 2 or int(l_distribution) == 16):
         b_vals[counter] = j
         list_of_dicts.append(intensity_table)
         counter += 1
-# Linear statistical distribution
-elif(int(l_distribution) == 4):
-    print("No sensitivity analysis required")
+# Linear statistical distribution or custom
+elif(int(l_distribution) == 4 or int(l_distribution) == -1):
+    print("No sensitivity analysis required for linear or custom distributions")
+
 # Square number of iterations for the 2 parameter fit
 if(int(l_distribution) == 2 or int(l_distribution) == 16):
     iters = iters**2
 
-if(int(l_distribution) != 4):
+if(int(l_distribution) != -1):
     # Loss as a function of parameter space
     loss_array = np.zeros(iters)
 
@@ -384,7 +401,8 @@ if(int(l_distribution) != 4):
 if(int(l_distribution) == 0):
 	fitted_alpha = alpha_vals[np.argmin(loss_array)]
 	print("Optimal parameter = ", fitted_alpha)
-elif(int(l_distribution) == 2 or int(l_distribution) == 16):
+
+elif(int(l_distribution) == 2):
 	# Find both of the fitted parameters
     fitted_a= a_vals[np.argmin(loss_array)]
     fitted_b= b_vals[np.argmin(loss_array)]
@@ -399,7 +417,7 @@ os.makedirs(figure_data, exist_ok=True)
 # Name of the lossplot file
 loss_data = "lossplot_"+experiment_name+".dat"
 
-if(int(l_distribution) != 4):
+if(int(l_distribution) != -1):
     # Write the loss function to file
     f = open(loss_data, "w")
     if(int(l_distribution) == 0):
@@ -417,11 +435,13 @@ if(int(l_distribution) != 4):
 # Obtained a fitted parameter through least squares
 # Next we want to do gaussian process
 # Name the file 
-if(int(l_distribution) == 0):
+if(int(l_distribution) == -1):
+    gaussian_process_name = "gp_"+element+"_custom"
+elif(int(l_distribution) == 0):
     gaussian_process_name = "gp_"+element+"_"+str(fitted_alpha)
-if(int(l_distribution) == 2 or int(l_distribution) == 16):
+elif(int(l_distribution) == 2 or int(l_distribution) == 16):
     gaussian_process_name = "gp_"+element+"_"+str(fitted_a)+"_"+str(fitted_b)
-if(int(l_distribution) == 4):
+elif(int(l_distribution) == 4):
     gaussian_process_name = "gp_"+element
 
 # Name of the folder which will contain the gaussian process
@@ -434,7 +454,7 @@ shutil.copyfile("basic_input", gaussian_process_name+"/basic_input")
 os.chdir(gaussian_process_name)
 
 # Number of GP samples to run 
-num_samples = 100
+num_samples = 10
 
 signal_axis = np.zeros(6)
 scale_axis = np.zeros(6)
@@ -458,9 +478,9 @@ for signal_power in range(1):
         elif(int(l_distribution) == 2 or int(l_distribution) == 16):
             # Quad distribution
             run_gaussian_process(fitted_a, fitted_b, element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val)
-        elif(int(l_distribution) == 4):
+        elif(int(l_distribution) == -1):
             # Statistical distribution
-            run_gaussian_process(element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val)
+            run_gaussian_process(distribution,element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val)
 
         intensities = np.zeros(num_samples)
         list_of_gp_intensities = []
@@ -486,7 +506,6 @@ for signal_power in range(1):
             os.system("../../a.out < "+name+" >"+out_name)
             gp_intensities = parse_akylas_transitions(out_name)
             list_of_gp_intensities.append(gp_intensities)
-
 
         # This is the metric used for GP testing
         kl_div_sum = 0
@@ -581,14 +600,7 @@ for signal_power in range(1):
         scale_count += 1
     signal_count += 1
 grid1, grid2 = np.meshgrid(signal_axis, scale_axis)
-print(grid1, grid2)
-print(entropy_values)
 a, b = (np.argmin(entropy_values,0), np.argmin(entropy_values,1))
-print(np.unravel_index(entropy_values.argmin(), entropy_values.shape))
-# plt.contour(grid1, grid2, entropy_values)
-# plt.colorbar()
-# plt.show() 
-# plt.show()
 plt.xlabel('scale (10^x)', fontsize=20)
 plt.ylabel('signal (10^y)', fontsize=20)
 plt.xticks(fontsize=18)
