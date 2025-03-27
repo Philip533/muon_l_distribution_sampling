@@ -33,10 +33,10 @@ def norm_func(dist, alpha, npoints, X):
 
 # This routine takes optimised parameter(s) and produces input
 # files using GP samples. At the moment, the kernel is fixed
-def run_gaussian_process(*params, element, nsamples, l_distribution, signal, scale):
+def run_gaussian_process(*params, element, nsamples, l_distribution, signal, scale, nmax):
     key = jr.PRNGKey(123)
 
-    print(signal, scale, l_distribution)
+    # print(signal, scale, l_distribution)
 
     # Choose an appropriate kernel
     # k = 0.01 * tinygp.kernels.ExpSquared(scale=0.01, distance=tinygp.kernels.L2Distance())
@@ -45,8 +45,8 @@ def run_gaussian_process(*params, element, nsamples, l_distribution, signal, sca
     # k = float(signal)*tinygp.kernels.Matern32(scale=scale)
 
     # Make the l axis
-    npoints  = 20
-    X_p = np.linspace(0,19, npoints)
+    npoints  = nmax
+    X_p = np.linspace(0,nmax-1, npoints)
 
     # Build our prior GP
     prior_gp = tinygp.GaussianProcess(k, X_p)
@@ -86,7 +86,7 @@ def run_gaussian_process(*params, element, nsamples, l_distribution, signal, sca
     for j in range(nsamples):
 
         # Loop over each l value
-        for i in range(0,20):
+        for i in range(0,14):
 
             # Choose distribution
             if(distribution == "quad"):
@@ -149,7 +149,7 @@ def run_gaussian_process(*params, element, nsamples, l_distribution, signal, sca
         f = open("input_"+element+"_"+str(i+1)+"_"+str(signal)+"_"+str(scale), "a")
         
         # Write the population to input file
-        for j in range(20):
+        for j in range(14):
             f.write("PL    FR   "+str(j)+" "+ str(val[i,j])+"\n")
 
         # Finish up

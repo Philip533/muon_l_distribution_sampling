@@ -5,6 +5,7 @@ import sys
 import re
 import numpy as np
 
+# Binding energies taken from https://xdb.lbl.gov/Section1/Table_1-1.pdf
 with open('./binding.dat') as f:
     lines = f.read().splitlines()
 
@@ -19,12 +20,13 @@ for i in range(len(lines)):
         continue
     if (split[2] == sys.argv[1]):
         element = lines[i-1].split()
+        print(element)
         done = True
         break
 
 # Catch incorrect name
 if (done == False):
-    print("ERROR IN ELEMENT NAME", sys.argv[1], "PROGRAM STOPPING")
+    print("Error in element symbol ", sys.argv[1], ". Program terminating")
     sys.exit()
 
 # All elements have a K binding energy
@@ -67,11 +69,11 @@ with open('./atomic_masses.dat') as f:
 
 # Get the appropriate atomic mass
 for i in range(len(lines)):
-    if (re.search(sys.argv[1], lines[i])):
-        mass = (lines[i].split()[3])
-
-        if(re.search("\(", str(mass))):
-            mass = mass.split("(")[0]
+    split = []
+    split = lines[i].split()
+    if (split[1] == sys.argv[1]):
+        mass = split[3].split("(")[0]
+        break
 
 
 # Effective charges for K, L, M shell

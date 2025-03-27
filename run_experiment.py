@@ -80,14 +80,14 @@ def generate_experimental_gaussian(mean, std, linspace):
     return np.array(gaussian)
 
 # Get all of the transitions and put them in a dictionary
-def parse_akylas_transitions(out_name):
+def parse_akylas_transitions(out_name,nmax):
 
     # This dictionary holds all transitions starting at i, in the key i
     akylas_intensities = {}
 
     # We want to loop over our entire set of transitions given by Akylas
     # which is from 2 to 20
-    for i in range(2,21):
+    for i in range(2,nmax+1):
 
         # Make an empty list in the dictionary for the starting point
         akylas_intensities[i] = []
@@ -132,8 +132,8 @@ if(len(sys.argv) == 1):
     print("Fatal error: Element must be provided at command line")
     sys.exit()
 
-# For now we are keeping nmax at 20
-nmax = 20
+# Specify the maximum energy level of capture
+nmax = 14
 
 # Get the element and l-distribution from command line
 element = sys.argv[1]
@@ -144,6 +144,9 @@ l_distribution = sys.argv[2]
 exp_intens = {}
 exp_intens, num_s_transitions = read_exp_data(element)
 
+if(num_s_transitions == 0):
+    print("No experimental data provided")
+    exp_data = False
 # First let's generate an array containing the mean population
 distribution = np.zeros(nmax)
 
@@ -164,6 +167,10 @@ if(int(l_distribution) == -1):
 
     if(not np.all(distribution >= 0.0)):
         print("Fatal error: Initial muon population cannot have negative values")
+        sys.exit()
+
+    if(len(distribution) != nmax):
+        print("Fatal error: The custom distribution must have nmax entries")
         sys.exit()
 
 # Modified statistical distribution
@@ -292,7 +299,7 @@ if(int(l_distribution) == 0):
         os.system("../a.out < "+name+" >"+out_name)
 		
 		# Collect all of the intensities
-        intensity_table = parse_akylas_transitions(out_name)
+        intensity_table = parse_akylas_transitions(out_name, nmax)
 		  
         # Keep track of the intensities and parameter value
         alpha_vals[counter] = j
@@ -352,7 +359,7 @@ elif(int(l_distribution) == 2):
         os.system("../a.out < "+name+" >"+out_name)
 
         # Obtain all of our intensities
-        intensity_table = parse_akylas_transitions(out_name)
+        intensity_table = parse_akylas_transitions(out_name,nmax)
         a_vals[counter] = i
         b_vals[counter] = j
         list_of_dicts.append(intensity_table)
@@ -365,7 +372,7 @@ elif(int(l_distribution) == 4 or int(l_distribution) == -1):
 if(int(l_distribution) == 2 or int(l_distribution) == 16):
     iters = iters**2
 
-if(int(l_distribution) != -1):
+if(int(l_distribution) != -1 and exp_data == True):
     # Loss as a function of parameter space
     loss_array = np.zeros(iters)
 
@@ -399,8 +406,13 @@ if(int(l_distribution) != -1):
 # Find the fitted parameter which corresponds to the minimum
 # value of the loss function
 if(int(l_distribution) == 0):
-	fitted_alpha = alpha_vals[np.argmin(loss_array)]
-	print("Optimal parameter = ", fitted_alpha)
+
+    if(exp_data == True):
+        fitted_alpha = alpha_vals[np.argmin(loss_array)]
+        print("Optimal parameter = ", fitted_alpha)
+    else:
+        fitted_alpha = alpha
+        print("Least squares cannot be performed as there is no experimental data provided for this element. Using the user provided value of alpha for the GP mean")
 
 elif(int(l_distribution) == 2):
 	# Find both of the fitted parameters
@@ -417,7 +429,7 @@ os.makedirs(figure_data, exist_ok=True)
 # Name of the lossplot file
 loss_data = "lossplot_"+experiment_name+".dat"
 
-if(int(l_distribution) != -1):
+if(int(l_distribution) != -1 and exp_data == True):
     # Write the loss function to file
     f = open(loss_data, "w")
     if(int(l_distribution) == 0):
@@ -474,16 +486,16 @@ for signal_power in range(1):
         # We obtain all of our input files here
         if(int(l_distribution) == 0):
             # Stat distribution
-            run_gaussian_process(fitted_alpha, element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val, scale=scale_val)
+            run_gaussian_process(fitted_alpha, element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val, scale=scale_val, nmax=nmax)
         elif(int(l_distribution) == 2 or int(l_distribution) == 16):
             # Quad distribution
-            run_gaussian_process(fitted_a, fitted_b, element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val)
+            run_gaussian_process(fitted_a, fitted_b, element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val, nmax=nmax)
         elif(int(l_distribution) == -1):
             # Custom distribution
-            run_gaussian_process(distribution,element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val)
+            run_gaussian_process(distribution,element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val, nmax=nmax)
         elif(int(l_distribution) == 4):
             # Linear statistical 
-            run_gaussian_process(distribution,element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val)
+            run_gaussian_process(distribution,element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val, nmax=nmax)
 
         intensities = np.zeros(num_samples)
         list_of_gp_intensities = []
@@ -507,7 +519,7 @@ for signal_power in range(1):
             # Run the code and parse the results, same as with the
             # parameter sweep
             os.system("../../a.out < "+name+" >"+out_name)
-            gp_intensities = parse_akylas_transitions(out_name)
+            gp_intensities = parse_akylas_transitions(out_name,nmax)
             list_of_gp_intensities.append(gp_intensities)
 
         # This is the metric used for GP testing
@@ -520,7 +532,8 @@ for signal_power in range(1):
             # data for it
             exp_intensity = float(exp_intens[str(j)][j-2].split("+")[0])
             if (exp_intensity < -1):
-                continue
+                # continue
+                pass
 
             intensity_file_name = "intensities"+str(j)+str(j-1)+".dat"
 
@@ -572,7 +585,7 @@ for signal_power in range(1):
             shutil.copyfile(gaussian_file_name, "../"+figure_data+"/"+gaussian_file_name)
 
             # Find the surprise of using our GP distribution instead of experimental
-            print(st.entropy(experimental_gaussian_entropy, y), "ENTROPY for ",j,"->",j-1 )
+            # print(st.entropy(experimental_gaussian_entropy, y), "ENTROPY for ",j,"->",j-1 )
             kl_div_sum += st.entropy(experimental_gaussian_entropy, y)
 
             # Plot the experimental gaussian, which will be on the same axis
@@ -581,24 +594,54 @@ for signal_power in range(1):
             # plt.plot(x2,experimental_gaussian, label="Experimental data")
             # plt.show()
             
+
+        if(len(exp_intens) == 0):
+            # We will only be looking at the s transitions
+            for j in range(2,6):
+                s_intensities = []
+                intensity_file_name = "intensities"+str(j)+str(j-1)+".dat"
+                for i in range(num_samples):
+
+                    # Get the correct intensity, n -> n-1
+                    s_intensities.append(list_of_gp_intensities[i][j][j-2])
+            
+                # Make a KDE plot, and store the line so we can use it
+                # in a KL divergence calculation
+                plot_kde = sns.kdeplot(s_intensities, warn_singular=False)
+                points = plot_kde.get_lines()[0].get_data()
+                x = points[0]
+                y = points[1]
+                f2 = open(intensity_file_name, "w")
+                for i in range(len(y)):
+                    f2.write(str(x[i])+" "+str(y[i])+"\n")
+                    # print("No exp")
+                f2.close()
+                shutil.copyfile(intensity_file_name, "../"+figure_data+"/"+intensity_file_name)
+                plt.cla()
+
         # Make a nice GNUplot figure. This only works if S transitions up to n = 6 are 
         # present in the experimental data
         os.chdir("../figure_data")
-
         # Get the correct script depending on how many experimental transitions
         # we actually have
         if (num_s_transitions >= 4):
             shutil.copyfile("../../multiplot4.gpi", "./multiplot4.gpi")
             subprocess.run(["gnuplot", "multiplot4.gpi"])
-        if (num_s_transitions == 3):
+        elif (num_s_transitions == 3):
             shutil.copyfile("../../multiplot3.gpi", "./multiplot3.gpi")
             subprocess.run(["gnuplot", "multiplot3.gpi"])
-        if (num_s_transitions == 2):
+        elif (num_s_transitions == 2):
             shutil.copyfile("../../multiplot2.gpi", "./multiplot2.gpi")
             subprocess.run(["gnuplot", "multiplot2.gpi"])
+
+        # If we have no experimental transitions, let's just plot the first 4 transitions
+        elif(num_s_transitions == 0):
+            shutil.copyfile("../../multiplot4_no_exp.gpi", "./multiplot4_no_exp.gpi")
+            subprocess.run(["gnuplot", "multiplot4_no_exp.gpi"])
+
         os.chdir("../"+gaussian_process_name)
 
-        print("Sum of entropy = ", kl_div_sum)
+        # print("Sum of entropy = ", kl_div_sum)
         entropy_values[signal_count, scale_count] = kl_div_sum
         scale_count += 1
     signal_count += 1
