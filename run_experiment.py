@@ -479,7 +479,10 @@ for signal_power in range(1):
             # Quad distribution
             run_gaussian_process(fitted_a, fitted_b, element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val)
         elif(int(l_distribution) == -1):
-            # Statistical distribution
+            # Custom distribution
+            run_gaussian_process(distribution,element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val)
+        elif(int(l_distribution) == 4):
+            # Linear statistical 
             run_gaussian_process(distribution,element=element, nsamples=num_samples, l_distribution=l_distribution, signal=signal_val,scale=scale_val)
 
         intensities = np.zeros(num_samples)
