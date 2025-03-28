@@ -86,7 +86,7 @@ def parse_akylas_transitions(out_name,nmax):
     akylas_intensities = {}
 
     # We want to loop over our entire set of transitions given by Akylas
-    # which is from 2 to 20
+    # which is from 2 to nmax
     for i in range(2,nmax+1):
 
         # Make an empty list in the dictionary for the starting point

@@ -86,7 +86,7 @@ def run_gaussian_process(*params, element, nsamples, l_distribution, signal, sca
     for j in range(nsamples):
 
         # Loop over each l value
-        for i in range(0,14):
+        for i in range(0,nmax):
 
             # Choose distribution
             if(distribution == "quad"):
@@ -149,7 +149,7 @@ def run_gaussian_process(*params, element, nsamples, l_distribution, signal, sca
         f = open("input_"+element+"_"+str(i+1)+"_"+str(signal)+"_"+str(scale), "a")
         
         # Write the population to input file
-        for j in range(14):
+        for j in range(nmax):
             f.write("PL    FR   "+str(j)+" "+ str(val[i,j])+"\n")
 
         # Finish up
